@@ -5,8 +5,8 @@
     Imports from the C NativeSDK
     ============================
 
-    Loads libdeezer shared library and translate its functions' prototypes. Sets
-    platform-specific globals.
+    Loads libdeezer shared library and translate its functions' prototypes.
+    Sets platform-specific globals.
 
     Callback types
     --------------
@@ -21,8 +21,8 @@
             changes. The callback must take 3 parameters:
             -   The handle (player or connection handle)
             -   An event object used to get the event that has been caught.
-                In your callback, use the static method get_event to convert the
-                event object to a ConnectionEvent index.
+                In your callback, use the static method get_event to convert
+                the event object to a ConnectionEvent index.
             -   A user_data that is an object you can pass through some
                 functions and that can be manipulated by the callback.
 
@@ -44,41 +44,47 @@
 """
 import sys
 import platform
-from ctypes import *
+from ctypes import cdll, c_uint64, c_uint32, c_int, c_void_p, c_bool
+from ctypes import CFUNCTYPE, c_char_p, py_object
 
-lib_path = u"../NativeSDK/Bins/Platforms"
+# from ctypes import *
+
+lib_path = "../NativeSDK/Bins/Platforms"
 
 # Import lib
-if platform.system() == u'Darwin':
-    lib_name = u'libdeezer'
-    lib_path += u"/MacOSX/libdeezer.framework/Versions/Current/"
+if platform.system() == 'Darwin':
+    lib_name = 'libdeezer'
+    lib_path += "/MacOSX/libdeezer.framework/Versions/Current/"
     libdeezer = cdll.LoadLibrary(lib_path+lib_name)
-elif platform.system() == u'Windows':
-    lib_path += u"/Windows/DLLs/"
+elif platform.system() == 'Windows':
+    lib_path += "/Windows/DLLs/"
     import os
     lib_path = os.path.abspath(os.pardir)
-    lib_path = os.path.join(lib_path, u'NativeSDK', u'Bins', u'Platforms', u'Windows', u'DLLs')
-    lib_name = u'libdeezer.'
-    lib_name += u'x64.dll' if sys.maxsize > 2**32 else u'x86.dll'
+    lib_path = os.path.join(lib_path, 'NativeSDK', 'Bins', 'Platforms',
+                            'Windows', 'DLLs')
+    lib_name = 'libdeezer.'
+    lib_name += 'x64.dll' if sys.maxsize > 2**32 else 'x86.dll'
     lib_path = os.path.join(lib_path, lib_name)
-    print (lib_path)
+    print(lib_path)
     libdeezer = cdll.LoadLibrary(lib_path)
 else:
-    lib_name = u'libdeezer.so'
-    lib_path += u"/Linux/"
-    if u"arm" in platform.machine():
-        lib_path += u"arm/"
-    elif u"x86" in platform.machine() or u"x64" in platform.machine():
-        lib_path += u"x86_64/"
+    lib_name = 'libdeezer.so'
+    lib_path += "/Linux/"
+    if "arm" in platform.machine():
+        lib_path += "arm/"
+    elif "x86" in platform.machine() or "x64" in platform.machine():
+        lib_path += "x86_64/"
     else:
-        lib_path += u"i386/"
+        lib_path += "i386/"
     libdeezer = cdll.LoadLibrary(lib_path+lib_name)
+
 p_type = c_uint64 if sys.maxsize > 2**32 else c_uint32
 
 # Callbacks
 dz_on_event_cb_func = CFUNCTYPE(c_int, p_type, c_void_p, c_void_p)
 dz_connect_crash_reporting_delegate_func = CFUNCTYPE(c_bool)
-dz_activity_operation_cb_func = CFUNCTYPE(c_int, c_void_p, c_void_p, p_type, p_type)
+dz_activity_operation_cb_func = CFUNCTYPE(c_int, c_void_p, c_void_p,
+                                          p_type, p_type)
 
 # Connect functions
 libdeezer.dz_connect_new.restype = p_type
@@ -87,41 +93,50 @@ libdeezer.dz_connect_get_device_id.restype = c_char_p
 libdeezer.dz_connect_get_build_id.restype = c_char_p
 libdeezer.dz_connect_debug_log_disable.argtypes = [p_type]
 libdeezer.dz_connect_activate.argtypes = [p_type, py_object]
-libdeezer.dz_connect_cache_path_set.argtypes = [p_type, c_void_p, py_object, c_char_p]
-libdeezer.dz_connect_set_access_token.argtypes = [p_type, c_void_p, py_object, c_char_p]
-libdeezer.dz_connect_offline_mode.argtypes = [p_type, c_void_p, py_object, c_bool]
+libdeezer.dz_connect_cache_path_set.argtypes = [p_type, c_void_p,
+                                                py_object, c_char_p]
+libdeezer.dz_connect_set_access_token.argtypes = [p_type, c_void_p,
+                                                  py_object, c_char_p]
+libdeezer.dz_connect_offline_mode.argtypes = [p_type, c_void_p,
+                                              py_object, c_bool]
 libdeezer.dz_connect_deactivate.argtypes = [p_type, c_void_p, py_object]
 
-libdeezer.dz_connect_smartcache_quota_set.argtypes = [p_type, c_void_p, py_object, c_int]
+libdeezer.dz_connect_smartcache_quota_set.argtypes = [p_type, c_void_p,
+                                                      py_object, c_int]
 
 # Player functions
 libdeezer.dz_player_new.argtypes = [p_type]
-libdeezer.dz_player_new.restype  = p_type
+libdeezer.dz_player_new.restype = p_type
 
-libdeezer.dz_player_activate.argtypes     = [p_type, py_object]
+libdeezer.dz_player_activate.argtypes = [p_type, py_object]
 libdeezer.dz_player_set_event_cb.argtypes = [p_type, dz_on_event_cb_func]
-libdeezer.dz_player_deactivate.argtypes   = [p_type, c_void_p, py_object]
+libdeezer.dz_player_deactivate.argtypes = [p_type, c_void_p, py_object]
 
 libdeezer.dz_player_event_get_type.argtypes = [c_void_p]
-libdeezer.dz_player_event_get_type.restype  = c_int
+libdeezer.dz_player_event_get_type.restype = c_int
 
 libdeezer.dz_player_event_track_selected_dzapiinfo.argtypes = [c_void_p]
-libdeezer.dz_player_event_track_selected_dzapiinfo.restype  = c_char_p
+libdeezer.dz_player_event_track_selected_dzapiinfo.restype = c_char_p
 
-libdeezer.dz_player_event_track_selected_next_track_dzapiinfo.argtypes = [c_void_p]
-libdeezer.dz_player_event_track_selected_next_track_dzapiinfo.restype  = c_char_p
+libdeezer.dz_player_event_track_selected_next_track_dzapiinfo.argtypes = \
+        [c_void_p]
+libdeezer.dz_player_event_track_selected_next_track_dzapiinfo.restype = \
+        c_char_p
 
-libdeezer.dz_player_load.argtypes   = [p_type, c_void_p, py_object, c_char_p]
-libdeezer.dz_player_play.argtypes   = [p_type, c_void_p, py_object, c_int, c_int]
-libdeezer.dz_player_stop.argtypes   = [p_type, c_void_p, py_object]
-libdeezer.dz_player_pause.argtypes  = [p_type, c_void_p, py_object]
+libdeezer.dz_player_load.argtypes = [p_type, c_void_p, py_object, c_char_p]
+libdeezer.dz_player_play.argtypes = [p_type, c_void_p, py_object, c_int, c_int]
+libdeezer.dz_player_stop.argtypes = [p_type, c_void_p, py_object]
+libdeezer.dz_player_pause.argtypes = [p_type, c_void_p, py_object]
 libdeezer.dz_player_resume.argtypes = [p_type, c_void_p, py_object]
 
-libdeezer.dz_player_event_get_queuelist_context.argtypes = [c_void_p, c_void_p, c_void_p]
-libdeezer.dz_player_set_repeat_mode.argtypes     = [p_type, c_void_p, py_object]
-libdeezer.dz_player_enable_shuffle_mode.argtypes = [p_type, c_void_p, py_object, c_bool]
-libdeezer.dz_player_play_audioads.argtypes       = [p_type, c_void_p, py_object]
+libdeezer.dz_player_event_get_queuelist_context.argtypes = [c_void_p, c_void_p,
+                                                            c_void_p]
+libdeezer.dz_player_set_repeat_mode.argtypes = [p_type, c_void_p, py_object]
+libdeezer.dz_player_enable_shuffle_mode.argtypes = [p_type, c_void_p,
+                                                    py_object, c_bool]
+libdeezer.dz_player_play_audioads.argtypes = [p_type, c_void_p, py_object]
 
-libdeezer.dz_player_set_output_volume.argtypes = [p_type, c_void_p, py_object, c_int]
-libdeezer.dz_player_set_output_mute.argtypes   = [p_type, c_void_p, py_object, c_bool]
-
+libdeezer.dz_player_set_output_volume.argtypes = [p_type, c_void_p,
+                                                  py_object, c_int]
+libdeezer.dz_player_set_output_mute.argtypes = [p_type, c_void_p,
+                                                py_object, c_bool]

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # coding: utf8
 
-import Queue
+import queue
 import threading
 import time
+import sys
+
 from myDeezerApp import *
 
 
@@ -14,7 +16,7 @@ def add_input(input_queue):
 
 
 def process_input(app):
-    input_queue = Queue.Queue()
+    input_queue = queue.Queue()
     input_thread = threading.Thread(target=add_input, args=(input_queue,))
     input_thread.daemon = True
     input_thread.start()

@@ -1,7 +1,15 @@
 #!/usr/bin/env python
 # coding: utf8
 
+from wrapper.deezer_connect import Connection, ConnectionEvent
+
+from wrapper.deezer_import import dz_on_event_cb_func
+from wrapper.deezer_import import dz_activity_operation_cb_func
+
 from wrapper.deezer_player import *
+
+import platform
+from ctypes import cast, c_uint, c_bool, c_int
 
 
 class MyDeezerApp(object):
@@ -28,14 +36,14 @@ class MyDeezerApp(object):
     def __init__(self, debug_mode=False):
         self.debug_mode = debug_mode
         # Identifiers
-        self.user_access_token = u"fr49mph7tV4KY3ukISkFHQysRpdCEbzb958dB320pM15OpFsQs"  # SET your user access token
-        self.your_application_id = u"190262"  # SET your application id
-        self.your_application_name = u"PythonSampleApp"  # SET your application name
-        self.your_application_version = u"00001"  # SET your application version
-        if platform.system() == u'Windows':
-            self.user_cache_path = u"c:\\dzr\\dzrcache_NDK_SAMPLE"  # SET the user cache path, the path must exist
+        self.user_access_token = "fr2eDVsJzH2IkwznPHJIUthdZb0y3eIzjEZMOGdrsoiE0iNdB4G" # "fr49mph7tV4KY3ukISkFHQysRpdCEbzb958dB320pM15OpFsQs"  # SET your user access token
+        self.your_application_id = "282484" # "190262"  # SET your application id
+        self.your_application_name = "PythonSample"  # "PythonSampleApp"  # SET your application name
+        self.your_application_version = "00001"  # SET your application version
+        if platform.system() == 'Windows':
+            self.user_cache_path = "c:\\dzr\\dzrcache_NDK_SAMPLE"  # SET the user cache path, the path must exist
         else:
-            self.user_cache_path = u"/var/tmp/dzrcache_NDK_SAMPLE"  # SET the user cache path, the path must exist
+            self.user_cache_path = "/var/tmp/dzrcache_NDK_SAMPLE"  # SET the user cache path, the path must exist
         self.context = self.AppContext()
         self.connection = Connection(self, self.your_application_id, self.your_application_name,
                                      self.your_application_version, self.user_cache_path,
@@ -49,9 +57,10 @@ class MyDeezerApp(object):
             self.log("---- Device ID: {}".format(self.connection.get_device_id()))
         self.player = Player(self, self.connection.handle)
         self.player.set_event_cb(self.player_cb)
-        self.connection.cache_path_set(self.connection.user_profile_path, activity_operation_cb=self.cache_path_set_cb,
+        self.connection.cache_path_set(self.connection.user_profile_path,
+                                       activity_operation_cb=self.cache_path_set_cb,
                                        operation_userdata=self)
-        self.connection.set_cache_max_size(100*1024) # Set to 100MB
+        self.connection.set_cache_max_size(100*1024)  # Set to 100MB
         self.connection.set_access_token(self.user_access_token)
         self.connection.set_offline_mode(False)
         self.context.player_handle = self.player.handle
@@ -65,7 +74,7 @@ class MyDeezerApp(object):
         :param message: The message to display
         """
         if self.debug_mode:
-            print (message)
+            print(message)
 
     def process_command(self, command):
         """Dispatch commands to corresponding function
@@ -184,23 +193,23 @@ class MyDeezerApp(object):
             Player.event_track_selected_rights(event, can_pause_unpause, can_seek, no_skip_allowed)
             selected_dz_api_info = Player.event_track_selected_dzapiinfo(event)
             next_dz_api_info = Player.event_track_selected_next_track_dzapiinfo(event)
-            app.log(u"==== PLAYER_EVENT ==== {0} - is_preview: {1}"
+            app.log("==== PLAYER_EVENT ==== {0} - is_preview: {1}"
                     .format(PlayerEvent.event_name(event_type), is_preview))
-            app.log(u"\tcan_pause_unpause: {0} - can_seek: {1}"
+            app.log("\tcan_pause_unpause: {0} - can_seek: {1}"
                     .format(can_pause_unpause.value, can_seek.value))
             if selected_dz_api_info:
-                print ("\tNOW:\t%s" % selected_dz_api_info)
+                print("\tNOW:\t%s" % selected_dz_api_info)
             if next_dz_api_info:
-                print ("\tNEXT:\t%s" % next_dz_api_info)
+                print("\tNEXT:\t%s" % next_dz_api_info)
             return 0
-        app.log(u"==== PLAYER_EVENT ==== {0}".format(PlayerEvent.event_name(event_type)))
+        app.log("==== PLAYER_EVENT ==== {0}".format(PlayerEvent.event_name(event_type)))
         if event_type == PlayerEvent.QUEUELIST_LOADED:
             # Check the current track index in the track list
             streaming_mode = c_uint()
             idx = c_uint()
             Player.get_queuelist_context(event,streaming_mode,idx)
-            app.log(u"index: {}".format(idx.value))
-            
+            app.log("index: {}".format(idx.value))
+
             app.player.play()
         if event_type == PlayerEvent.QUEUELIST_TRACK_RIGHTS_AFTER_AUDIOADS:
             # Current tacklist playback is stopped in order to play audioads,
@@ -225,10 +234,10 @@ class MyDeezerApp(object):
         # We retrieve our deezerApp
         app = cast(userdata, py_object).value
         event_type = Connection.get_event(event)
-        app.log(u"++++ CONNECT_EVENT ++++ {0}".format(ConnectionEvent.event_name(event_type)))
+        app.log("++++ CONNECT_EVENT ++++ {0}".format(ConnectionEvent.event_name(event_type)))
         # After User is authenticated we can start the player
         if event_type == ConnectionEvent.USER_LOGIN_OK:
-            app.log(u"----> LOAD {0}".format(app.context.dz_content_url))
+            app.log("----> LOAD {0}".format(app.context.dz_content_url))
             app.player.load(app.context.dz_content_url)
         if event_type == ConnectionEvent.USER_LOGIN_FAIL_USER_INFO:
             app.shutdown()

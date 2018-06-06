@@ -21,7 +21,10 @@
 
 """
 
-from wrapper.deezer_connect import *
+from wrapper.deezer_import import libdeezer
+from wrapper.deezer_import import py_object, c_char_p, c_void_p
+from ctypes import byref
+# from wrapper.deezer_connect import *
 
 
 class PlayerInitFailedError(Exception):
@@ -58,10 +61,10 @@ class PlayerIndex:
     def __init__(self):
         pass
 
-    INVALID  = -1
+    INVALID = -1
     PREVIOUS = -2
-    CURRENT  = -3
-    NEXT     = -4
+    CURRENT = -3
+    NEXT = -4
 
 
 class PlayerEvent:
@@ -100,25 +103,25 @@ class PlayerEvent:
     @staticmethod
     def event_name(event):
         event_names = [
-            u'UNKNOWN',
-            u'LIMITATION_FORCED_PAUSE',
-            u'QUEUELIST_LOADED',
-            u'QUEUELIST_TRACK_NO_RIGHT',
-            u'QUEUELIST_TRACK_NOT_AVAILABLE_OFFLINE',
-            u'QUEUELIST_TRACK_RIGHTS_AFTER_AUDIOADS',
-            u'QUEUELIST_SKIP_NO_RIGHT',
-            u'QUEUELIST_TRACK_SELECTED',
-            u'QUEUELIST_NEED_NATURAL_NEXT',
-            u'MEDIASTREAM_DATA_READY',
-            u'MEDIASTREAM_DATA_READY_AFTER_SEEK',
-            u'RENDER_TRACK_START_FAILURE',
-            u'RENDER_TRACK_START',
-            u'RENDER_TRACK_END',
-            u'RENDER_TRACK_PAUSED',
-            u'RENDER_TRACK_SEEKING',
-            u'RENDER_TRACK_UNDERFLOW',
-            u'RENDER_TRACK_RESUMED',
-            u'RENDER_TRACK_REMOVED'
+            'UNKNOWN',
+            'LIMITATION_FORCED_PAUSE',
+            'QUEUELIST_LOADED',
+            'QUEUELIST_TRACK_NO_RIGHT',
+            'QUEUELIST_TRACK_NOT_AVAILABLE_OFFLINE',
+            'QUEUELIST_TRACK_RIGHTS_AFTER_AUDIOADS',
+            'QUEUELIST_SKIP_NO_RIGHT',
+            'QUEUELIST_TRACK_SELECTED',
+            'QUEUELIST_NEED_NATURAL_NEXT',
+            'MEDIASTREAM_DATA_READY',
+            'MEDIASTREAM_DATA_READY_AFTER_SEEK',
+            'RENDER_TRACK_START_FAILURE',
+            'RENDER_TRACK_START',
+            'RENDER_TRACK_END',
+            'RENDER_TRACK_PAUSED',
+            'RENDER_TRACK_SEEKING',
+            'RENDER_TRACK_UNDERFLOW',
+            'RENDER_TRACK_RESUMED',
+            'RENDER_TRACK_REMOVED'
         ]
         return event_names[event]
 
@@ -182,7 +185,8 @@ class Player:
         self.is_playing = False
         self.handle = libdeezer.dz_player_new(connect_handle)
         if not self.handle:
-            raise PlayerInitFailedError(u"Player failed to init. Check that connection is established.")
+            raise PlayerInitFailedError("Player failed to init. Check that \
+                                        connection is established.")
         self._activate(self.context)
 
     def _activate(self, supervisor=None):
@@ -194,7 +198,9 @@ class Player:
         """
         context = py_object(supervisor) if supervisor else c_void_p(0)
         if libdeezer.dz_player_activate(self.handle, context):
-            raise PlayerActivationError(u"Player activation failed. Check player info and your network connection.")
+            raise PlayerActivationError("Player activation failed. Check \
+                                        player info and your network \
+                                        connection.")
         self.active = True
 
     def set_event_cb(self, cb):
@@ -207,9 +213,11 @@ class Player:
         """
         if libdeezer.dz_player_set_event_cb(self.handle, cb):
             raise PlayerRequestFailedError(
-                u"set_event_cb: Request failed. Check the given callback arguments and return types and/or the player.")
+                "set_event_cb: Request failed. Check the given callback \
+                arguments and return types and/or the player.")
 
-    def load(self, content, activity_operation_cb=None, operation_user_data=None):
+    def load(self, content, activity_operation_cb=None,
+             operation_user_data=None):
         """Load the given content or the current track.
 
         In the first case, set the current_track to the given track.
@@ -228,10 +236,14 @@ class Player:
             self.current_content = content
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
-        if libdeezer.dz_player_load(self.handle, cb, context, c_char_p(self.current_content.encode('utf-8'))):
-            raise PlayerRequestFailedError(u"load: Unable to load selected track. Check connection and tracklist data.")
+        if libdeezer.dz_player_load(self.handle, cb, context,
+                                    c_char_p(self.current_content.encode('utf-8'))):
+            raise PlayerRequestFailedError("load: Unable to load selected \
+                                           track. Check connection and \
+                                           tracklist data.")
 
-    def play(self, activity_operation_cb=None, operation_user_data=None, command=PlayerCommand.START_TRACKLIST,
+    def play(self, activity_operation_cb=None, operation_user_data=None,
+             command=PlayerCommand.START_TRACKLIST,
              index=PlayerIndex.CURRENT):
         """Play the current track if loaded.
             The player gets data and renders it.
@@ -243,13 +255,16 @@ class Player:
         :type command: PlayerCommand
         :type index: int
         :type activity_operation_cb: dz_activity_operation_cb_func
-        :type operation_user_data: Same as operation_user_data in your callback.
-            Must inherit from structure as it is used by ctypes.
+        :type operation_user_data: Same as operation_user_data in your
+            callback. Must inherit from structure as it is used by ctypes.
         """
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
-        if libdeezer.dz_player_play(self.handle, cb, context, command, index) not in range(0, 2):
-            raise PlayerRequestFailedError(u"play: Unable to play selected track. Check player commands and info.")
+        if libdeezer.dz_player_play(self.handle, cb, context, command,
+                                    index) not in range(0, 2):
+            raise PlayerRequestFailedError("play: Unable to play selected \
+                                           track. Check player commands and \
+                                           info.")
         self.is_playing = True
 
     def shutdown(self, activity_operation_cb=None, operation_user_data=None):
@@ -264,7 +279,8 @@ class Player:
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
         if libdeezer.dz_player_stop(self.handle, cb, context):
-            raise PlayerRequestFailedError(u"play: Unable to stop track. Check player commands and info.")
+            raise PlayerRequestFailedError("play: Unable to stop track. Check \
+                                           player commands and info.")
         self.is_playing = False
 
     def pause(self, activity_operation_cb=None, operation_user_data=None):
@@ -272,7 +288,8 @@ class Player:
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
         if libdeezer.dz_player_pause(self.handle, cb, context):
-            raise PlayerRequestFailedError(u"play: Unable to pause track. Check player commands and info.")
+            raise PlayerRequestFailedError("play: Unable to pause track. \
+                                           Check player commands and info.")
         self.is_playing = False
 
     def resume(self, activity_operation_cb=None, operation_user_data=None):
@@ -280,20 +297,25 @@ class Player:
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
         if libdeezer.dz_player_resume(self.handle, cb, context):
-            raise PlayerRequestFailedError(u"play: Unable to resume track. Check player commands and info.")
+            raise PlayerRequestFailedError("play: Unable to resume track. \
+                                           Check player commands and info.")
         self.is_playing = True
 
-    def set_repeat_mode(self, repeat_mode, activity_operation_cb=None, operation_user_data=None):
+    def set_repeat_mode(self, repeat_mode, activity_operation_cb=None,
+                        operation_user_data=None):
         """Set the repeat mode of the player.
             :param repeat_mode: The repeat mode to set
             :type repeat_mode: PlayerRepeatMode
         """
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
-        if libdeezer.dz_player_set_repeat_mode(self.handle, cb, context, repeat_mode):
-            raise PlayerRequestFailedError(u"play: Unable to set repeat mode. Check player commands and info.")
+        if libdeezer.dz_player_set_repeat_mode(self.handle, cb, context,
+                                               repeat_mode):
+            raise PlayerRequestFailedError("play: Unable to set repeat mode. \
+                                           Check player commands and info.")
 
-    def enable_shuffle_mode(self, shuffle_mode, activity_operation_cb=None, operation_user_data=None):
+    def enable_shuffle_mode(self, shuffle_mode, activity_operation_cb=None,
+                            operation_user_data=None):
         """Set the shuffle mode of the player (randomize track selection)
             :param shuffle_mode: Set to true to activate the random track
             selection
@@ -301,35 +323,46 @@ class Player:
         """
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
-        if libdeezer.dz_player_enable_shuffle_mode(self.handle, cb, context, shuffle_mode):
-            raise PlayerRequestFailedError(u"play: Unable to set repeat mode. Check player commands and info.")
+        if libdeezer.dz_player_enable_shuffle_mode(self.handle, cb, context,
+                                                   shuffle_mode):
+            raise PlayerRequestFailedError("play: Unable to set repeat mode. \
+                                           Check player commands and info.")
 
-    def set_output_volume(self, volume, activity_operation_cb=None, operation_user_data=None):
+    def set_output_volume(self, volume, activity_operation_cb=None,
+                          operation_user_data=None):
         """Set the output volume of the player.
             :param volume: Set to the percentage of the output volume
             :type volume: int
         """
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
-        if libdeezer.dz_player_set_output_volume(self.handle, cb, context, volume):
-            raise PlayerRequestFailedError(u"play: Unable to set volume. Check player commands and info.")
+        if libdeezer.dz_player_set_output_volume(self.handle, cb, context,
+                                                 volume):
+            raise PlayerRequestFailedError("play: Unable to set volume. Check \
+                                           player commands and info.")
 
-    def set_output_mute(self, is_mute, activity_operation_cb=None, operation_user_data=None):
+    def set_output_mute(self, is_mute, activity_operation_cb=None,
+                        operation_user_data=None):
         """Set the mute mode of the player
             :param is_mute: Set to true to mute the output volume
             :type is_mute: bool
         """
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
-        if libdeezer.dz_player_set_output_mute(self.handle, cb, context, is_mute):
-            raise PlayerRequestFailedError(u"play: Unable to (un)mute the output. Check player commands and info.")
+        if libdeezer.dz_player_set_output_mute(self.handle, cb, context,
+                                               is_mute):
+            raise PlayerRequestFailedError("play: Unable to (un)mute the \
+                                           output. Check player commands \
+                                           and info.")
 
-    def play_audio_ads(self, activity_operation_cb=None, operation_user_data=None):
+    def play_audio_ads(self, activity_operation_cb=None,
+                       operation_user_data=None):
         """Load and play an audio ad when required"""
         context = py_object(operation_user_data) if operation_user_data else c_void_p(0)
         cb = activity_operation_cb if activity_operation_cb else c_void_p(0)
         if libdeezer.dz_player_play_audioads(self.handle, cb, context):
-            raise PlayerRequestFailedError(u"play: Unable to play audio ads. Check connection.")
+            raise PlayerRequestFailedError("play: Unable to play audio ads. \
+                                           Check connection.")
 
     @staticmethod
     def get_queuelist_context(event, streaming_mode, idx):
@@ -361,4 +394,3 @@ class Player:
     @staticmethod
     def get_event(event_obj):
         return libdeezer.dz_player_event_get_type(c_void_p(event_obj))
-
